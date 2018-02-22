@@ -80,6 +80,11 @@ class Infusionsoft
     protected $token;
 
     /**
+     * @var array
+     */
+    protected $lastResponseHeaders;
+
+    /**
      * @param array $config
      */
     public function __construct($config = array())
@@ -274,7 +279,7 @@ class Infusionsoft
 
         $client = $this->getHttpClient();
 
-        $tokenInfo = $client->request('POST', $this->tokenUri, [
+        list($tokenInfo, $this->lastResponseHeaders) = $client->request('POST', $this->tokenUri, [
             'body'    => http_build_query($params),
             'headers' => ['Content-Type' => 'application/x-www-form-urlencoded']
         ]);
@@ -314,7 +319,7 @@ class Infusionsoft
 
         $client = $this->getHttpClient();
 
-        $tokenInfo = $client->request('POST', $this->tokenUri,
+        list($tokenInfo, $this->lastResponseHeaders) = $client->request('POST', $this->tokenUri,
             ['body' => http_build_query($params), 'headers' => $headers]);
 
         $this->setToken(new Token(json_decode($tokenInfo, true)));
@@ -453,7 +458,7 @@ class Infusionsoft
         $this->needsEmptyKey = true;
 
         $client   = $this->getSerializer();
-        $response = $client->request($method, $url, $params, $this->getHttpClient());
+        list($response,$this->lastResponseHeaders) = $client->request($method, $url, $params, $this->getHttpClient());
 
         return $response;
     }
@@ -490,9 +495,33 @@ class Infusionsoft
             'Content-Type' => 'application/json',
         );
 
-        $response = (string)$client->request($method, $url, $full_params);
+        list ($response, $this->lastResponseHeaders) = $client->request($method, $url, $full_params);
+        return json_decode((string)$response, true);
+    }
 
-        return json_decode($response, true);
+    /**
+     * @return array
+     */
+    public function getLastResponseHeaders()
+    {
+        return $this->lastResponseHeaders;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLastResponseHeaderByKey($key)
+    {
+        if(!isset($this->lastResponseHeaders[$key])){
+            return null;
+        }
+        if(!is_array($this->lastResponseHeaders[$key])){
+            $this->lastResponseHeaders[$key] = [];
+        }
+        if(count($this->lastResponseHeaders[$key]) == 1){
+            return $this->lastResponseHeaders[$key][0];
+        }
+        return $this->lastResponseHeaders[$key];
     }
 
     /**

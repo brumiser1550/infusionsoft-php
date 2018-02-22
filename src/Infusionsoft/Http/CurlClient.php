@@ -2,14 +2,13 @@
 
 namespace Infusionsoft\Http;
 
-use fXmlRpc\Transport\HttpAdapterTransport;
 use Ivory\HttpAdapter\Configuration;
 use Ivory\HttpAdapter\CurlHttpAdapter;
 
 class CurlClient implements ClientInterface {
 
 	/**
-	 * @return \fXmlRpc\Transport\HttpAdapterTransport
+	 * @return HttpAdapterTransport
 	 */
 	public function getXmlRpcTransport()
 	{
@@ -58,7 +57,7 @@ class CurlClient implements ClientInterface {
 		curl_setopt($ch, CURLOPT_URL, $uri);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_HEADER, false);
+		curl_setopt($ch, CURLOPT_HEADER, true);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $processed_headers);
 		curl_setopt($ch, CURLOPT_CAINFO, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'cacert.pem');
 
@@ -81,6 +80,17 @@ class CurlClient implements ClientInterface {
 
 		$response     = curl_exec($ch);
 		$responseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$response_parts = explode("\r\n\r\n", $response);
+
+        $temp_headers = array_shift($response_parts);
+        $temp_headers = explode("\r\n", $temp_headers);
+        $response_headers = [];
+        foreach ($temp_headers as $temp_header) {
+            $header = explode(": ", $temp_header);
+            $key = array_shift($header);
+            $response_headers[$key][] = implode(": ", $header);
+        }
+        $response = implode("\r\n\r\n",$response_parts);
 
 		if (false === $response)
 		{
@@ -98,7 +108,7 @@ class CurlClient implements ClientInterface {
 
 		curl_close($ch);
 
-		return $response;
+		return [$response,$response_headers];
 	}
 
 }

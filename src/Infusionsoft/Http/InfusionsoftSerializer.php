@@ -2,7 +2,6 @@
 
 namespace Infusionsoft\Http;
 
-use fXmlRpc\Client;
 use fXmlRpc\Exception\ExceptionInterface as fXmlRpcException;
 
 class InfusionsoftSerializer implements SerializerInterface {
@@ -12,7 +11,7 @@ class InfusionsoftSerializer implements SerializerInterface {
 	 * @param string          $uri
 	 * @param array           $params
 	 * @param ClientInterface $client
-	 * @return mixed|void
+	 * @return mixed
 	 * @throws HttpException
 	 */
 	public function request($method, $uri, $params, ClientInterface $client)
@@ -23,11 +22,11 @@ class InfusionsoftSerializer implements SerializerInterface {
 		{
 			$transport = $client->getXmlRpcTransport();
 
-			$client = new Client($uri, $transport);
+			$client = new fXmlRpcClient($uri, $transport);
 
-			$response = $client->call($method, $params);
+			list($response,$headers) = $client->call($method, $params);
 
-			return $response;
+			return [$response,$headers];
 		}
 		catch (fXmlRpcException $e)
 		{
